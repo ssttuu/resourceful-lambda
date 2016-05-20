@@ -1,0 +1,25 @@
+{
+  "name": "resourceful-lambda",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Gruntfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stupschwartz/resourceful-lambda.git"
+  },
+  "author": "Stu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stupschwartz/resourceful-lambda/issues"
+  },
+  "homepage": "https://github.com/stupschwartz/resourceful-lambda#readme",
+  "devDependencies": {
+    "archiver": "^1.0.0",
+    "aws-sdk": "^2.3.14",
+    "grunt": "^1.0.1",
+    "grunt-env": "^0.4.4"
+  }
+}

@@ -1,3 +1,9 @@
+# IDE
+.idea
+
+# Artifacts
+dist
+
 # Logs
 logs
 *.log
