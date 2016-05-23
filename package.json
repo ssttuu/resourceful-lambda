@@ -19,6 +19,7 @@
   "devDependencies": {
     "archiver": "^1.0.0",
     "aws-sdk": "^2.3.14",
+    "fs-extra": "^0.30.0",
     "grunt": "^1.0.1",
     "grunt-env": "^0.4.4"
   }

@@ -5,28 +5,94 @@ const path = require('path');
 
 const AWS = require('aws-sdk');
 const archiver = require('archiver');
+const fse = require('fs-extra');
 
 
-let s3 = new AWS.S3();
+let S3 = new AWS.S3();
+let APIGateway = new AWS.APIGateway({
+    region: process.env.AWS_REGION
+});
 
 let createBucket = (bucket) => {
-    let bucketExists = s3.headBucket({Bucket: bucket}).promise();
+    let bucketExists = S3.headBucket({Bucket: bucket}).promise();
     return bucketExists.then((data) => {
         return new Promise(resolve => resolve(data))
     }, () => {
-        return s3.createBucket({Bucket: bucket, ACL: 'private'}).promise().then(() => {
-            return s3.waitFor('bucketExists', {Bucket: bucket}).promise();
+        return S3.createBucket({Bucket: bucket, ACL: 'private'}).promise().then(() => {
+            return S3.waitFor('bucketExists', {Bucket: bucket}).promise();
         })
+    })
+};
+
+let createRestApi = () => {
+    // check to see if it exists
+    return APIGateway.getRestApis().promise().then((data) => {
+        let apiItem = null;
+        for (var i = 0; i < data.items.length; i++) {
+            let item = data.items[i];
+            if (item.name === process.env.GIT_HASH) {
+                apiItem = item;
+                break;
+            }
+        }
+
+        console.info('apiItem', apiItem);
+        if (apiItem) {
+            return new Promise(resolve => resolve(apiItem));
+        } else {
+            console.info('creating rest api');
+            return APIGateway.createRestApi({
+                name: process.env.GIT_HASH
+            }).promise();
+        }
+    }, (error) => {
+        console.info('error', error);
+    }).then((restApi) => {
+        // get root resource id - /
+        return APIGateway.getResources({
+            restApiId: restApi.id
+        }).promise().then((resources) => {
+
+            let findResource = (resourcePath) => {
+                let _resource = null;
+                for (var i = 0; i < resources.items.length; i++) {
+                    let item = resources.items[i];
+                    if (item.path === resourcePath) {
+                        _resource = item;
+                        break;
+                    }
+                }
+                return _resource;
+            };
+
+            let rootResource = findResource('/');
+            let usersResource = findResource('/users');
+
+            let createResourcePromise = new Promise(resolve => resolve());
+            if (!usersResource) {
+                createResourcePromise = createResourcePromise.then(() => {
+                    return APIGateway.createResource({
+                        parentId: rootResource.id,
+                        pathPart: 'users',
+                        restApiId: restApi.id
+                    }).promise();
+                });
+            }
+
+            
+
+            return createResourcePromise;
+        });
     })
 };
 
 let createZip = (srcDir, destPath) => {
     return new Promise(resolve => {
-        fs.access(srcDir, fs.F_OK, function (err) {
+        fs.access(destPath, fs.F_OK, function (err) {
             if (!err) {
                 resolve();
             } else {
-                fs.mkdirSync(path.dirname(destPath));
+                fse.mkdirsSync(path.dirname(destPath));
                 resolve();
             }
         });
@@ -55,20 +121,25 @@ let createZip = (srcDir, destPath) => {
 };
 
 let deploy = (done) => {
-    let bucket = process.env.S3_BUCKET;
-    let srcDir = process.env.SRC_DIR;
-    let destDir = process.env.DIST;
+    let destFile = path.join(process.env.DIST, process.env.SRC_DIR, `${process.env.GIT_HASH}.zip`);
 
-    let dateStr = new Date().toISOString();
-    let destFile = path.join(destDir, `${dateStr}.zip`);
-
-    return createBucket(bucket).then(() => {
-        return createZip(srcDir, destFile);
+    return createBucket(process.env.S3_BUCKET).then(() => {
+        console.info('Bucket exists or was created');
+        return new Promise(resolve => resolve());
+        // return createZip(srcDir, destFile);
     }).then(() => {
-
-        // TODO: Push to S3 and notify lambda
-
-        console.warn('done!');
+        console.info('Zip created');
+        return new Promise(resolve => resolve());
+        // return S3.putObject({
+        //     Bucket: bucket,
+        //     Key: path.join(srcDir, `${gitHash}.zip`),
+        //     Body: fs.readFileSync(destFile)
+        // }).promise();
+    }).then(() => {
+        console.info('Zip Uploaded');
+        return createRestApi();
+    }).then(() => {
+        console.info('done!');
         done();
     });
 };
