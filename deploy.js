@@ -10,7 +10,7 @@ const fse = require('fs-extra');
 
 let S3 = new AWS.S3();
 let APIGateway = new AWS.APIGateway({
-    region: process.env.AWS_REGION
+    region: procescreateBuckets.env.AWS_REGION
 });
 
 let createBucket = (bucket) => {
@@ -123,7 +123,7 @@ let createZip = (srcDir, destPath) => {
 let deploy = (done) => {
     let destFile = path.join(process.env.DIST, process.env.SRC_DIR, `${process.env.GIT_HASH}.zip`);
 
-    return createBucket(process.env.S3_BUCKET).then(() => {
+    return (process.env.S3_BUCKET).then(() => {
         console.info('Bucket exists or was created');
         return new Promise(resolve => resolve());
         // return createZip(srcDir, destFile);

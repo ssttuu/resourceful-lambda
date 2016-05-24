@@ -3,7 +3,7 @@
 exports.handler = (event, context) => {
     let datetime = new Date();
     context.done(null, {
-        'users': true,
+        'chat': true,
         'datetime': datetime.toISOString()
     });
 };
